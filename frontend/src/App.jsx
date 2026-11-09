@@ -12,6 +12,7 @@ const iconMap = { shopping: ShoppingBag, app: LayoutDashboard, code: Code2, ai: 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('All')
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jovanta-technology.onrender.com'
   const [contact, setContact] = useState({ name: '', email: '', phone: '', message: '' })
   const [quote, setQuote] = useState({ name: '', email: '', phone: '', businessName: '', serviceType: '', budget: '', description: '' })
   const [contactState, setContactState] = useState({ loading: false, message: '', error: false })
@@ -29,13 +30,34 @@ function App() {
     const setState = isQuote ? setQuoteState : setContactState
     setState({ loading: true, message: '', error: false })
     try {
-      const response = await fetch(`/api/${isQuote ? 'quotes' : 'contact'}`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/api/${isQuote ? 'quotes' : 'contact'}`, {
+                method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.message || 'Please check your details and try again.')
+      const responseText = await response.text()
+
+let result = {}
+
+try {
+  result = responseText ? JSON.parse(responseText) : {}
+} catch {
+  result = {}
+}
+
+if (!response.ok) {
+  throw new Error(
+    result.message ||
+    result.error ||
+    `Request failed with status ${response.status}`
+  )
+}
+
+setState({
+  loading: false,
+  message: result.message || 'Submitted successfully.',
+  error: false
+})
       setState({ loading: false, message: result.message || 'Submitted successfully.', error: false })
       if (isQuote) setQuote({ name: '', email: '', phone: '', businessName: '', serviceType: '', budget: '', description: '' })
       else setContact({ name: '', email: '', phone: '', message: '' })
